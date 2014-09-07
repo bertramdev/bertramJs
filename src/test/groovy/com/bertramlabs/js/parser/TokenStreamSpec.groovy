@@ -94,5 +94,80 @@ class TokenStreamSpec extends Specification {
 			token == Token.EOL
 	}
 
+	/**
+	* Tests that Punctuator Tokens Are Returned
+	* See ECMA-262 7.7
+	*/
+	def "should return Punctuators"() {
+		expect:
+			new TokenStream("test",0,punct).nextToken() == token
+		where:
+		punct | token
+		"{"   | Token.LC
+		"}"   | Token.RC
+		"("   | Token.LP
+		")"   | Token.RP
+		"["   | Token.LB
+		"]"   | Token.RB
+		"."   | Token.DOT
+		";"   | Token.SEMI
+		","   | Token.COMMA
+		">"   | Token.GT
+		"<"   | Token.LT
+		"<="  | Token.LE
+		">="  | Token.GE
+		"=="  | Token.EQ
+		"!="  | Token.NE
+		"===" | Token.EQ_EXACT
+		"!==" | Token.NE_EXACT
+		"+"   | Token.ADD
+		"-"   | Token.SUB
+		"*"   | Token.MUL
+		"%"   | Token.MOD
+		"++"  | Token.INC
+		"--"  | Token.DEC
+		">>"  | Token.RSH
+		"<<"  | Token.LSH
+		">>>" | Token.URSH
+		"&"   | Token.BITAND
+		"|"   | Token.BITOR
+		"^"   | Token.BITXOR
+		"!"   | Token.NOT
+		"~"   | Token.BITNOT
+		"&&"  | Token.AND
+		"||"  | Token.OR
+		"?"   | Token.QUESTION
+		":"   | Token.COLON
+		"="   | Token.ASSIGN
+		"+="  | Token.ASSIGN_ADD
+		"-="  | Token.ASSIGN_SUB
+		"*="  | Token.ASSIGN_MUL
+		"%="  | Token.ASSIGN_MOD
+		"<<=" | Token.ASSIGN_LSH
+		">>=" | Token.ASSIGN_RSH
+		">>>="| Token.ASSIGN_URSH
+		"&="  | Token.ASSIGN_BITAND
+		"|="  | Token.ASSIGN_BITOR
+		"^="  | Token.ASSIGN_BITXOR
+		"/"   | Token.DIV
+		"/="  | Token.ASSIGN_DIV
+	}
 
+
+	def "should return boolean literals"() {
+		expect:
+			new TokenStream("test",0,punct).nextToken() == token
+		where:
+		punct   | token
+		"true"  | Token.TRUE
+		"false" | Token.FALSE
+	}
+
+	def "should return null literal"() {
+		expect:
+			new TokenStream("test",0,punct).nextToken() == token
+		where:
+		punct   | token
+		"null"  | Token.NULL
+	}
 }

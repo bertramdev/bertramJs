@@ -30,6 +30,10 @@ public class TokenStream {
 	private char[] backtrackBuffer;
 	private int backtrackCursor=0;
 
+	private char[] stringLiteral;
+	private int stringEnclosingChar;
+
+
 
 	public TokenStream(String fileName, int lineNo, String sourceString) {
 		this(fileName,lineNo, new InputStreamReader(new ByteArrayInputStream(sourceString.getBytes())));
@@ -145,7 +149,245 @@ public class TokenStream {
 				}
 
 				//TODO: Test if String (Quotation)
-				//TODO: Test if Numeric Literal
+				if(c == '"' || c == '\'') {
+					stringEnclosingChar = c;
+					StringBuilder stringLiteralBuilder = new StringBuilder();
+					for(;;) {
+						int schar = getChar(false); //Don't skip formatting here
+						if(schar == '\\') { //Escape Sequence Detected
+							int escapeChar = getChar(false);
+							if(escapeChar == '\n') { // Line Continuation
+								continue;
+							}
+							//'"\bfnrtv
+							switch(escapeChar) {
+								case '\'':
+									stringLiteralBuilder.append('\'');
+									break;
+								case '"':
+									stringLiteralBuilder.append('"');
+									break;
+								case 'b':
+									stringLiteralBuilder.append('\u0008');
+									break;
+								case 'f':
+									stringLiteralBuilder.append('\f');
+									break;
+								case 'n':
+									stringLiteralBuilder.append('\n');
+									break;
+								case 'r':
+									stringLiteralBuilder.append('\r');
+									break;
+								case 't':
+									stringLiteralBuilder.append('\t');
+									break;
+								case 'v':
+									stringLiteralBuilder.append('\u000B');
+									break;
+								case 'u':
+									//TODO:We need to test for Hex Digits (max 4)
+
+									break;
+								case 'x':
+									int hexChar = getChar();
+									if(isHexDigit(hexChar)) {
+										// We need to decode this
+									}
+									//TODO: We need to parse hex digits (max 2)
+									break;
+								default:
+									if(isDecimalDigit(escapeChar)) {
+										// We need to parse the value;
+									}
+									stringLiteralBuilder.append(escapeChar);
+
+							}
+						} else if(schar == stringEnclosingChar) {
+							break;
+						} else if(schar == EOF_CHAR || schar == '\n') {
+							stringLiteral = stringLiteralBuilder.toString().toCharArray();
+							//TODO: Error Handler ParseError
+						} else {
+							stringLiteralBuilder.append((char)schar);
+						}
+
+					}
+					stringLiteral = stringLiteralBuilder.toString().toCharArray();
+					return Token.STRING;
+				}
+
+				if(isDecimalDigit(c)) {
+					//TODO We may have a numerical Literal
+				}
+
+				//Check for Punctuator Literals Specified in ECMASCRIPT-262 s7.7
+				switch(c) {
+					case ';':
+						return Token.SEMI;
+					case '{':
+						return Token.LC;
+					case '}':
+						return Token.RC;
+					case '(':
+						return Token.LP;
+					case ')':
+						return Token.RP;
+					case '[':
+						return Token.LB;
+					case ']':
+						return Token.RB;
+					case ',':
+						return Token.COMMA;
+					case ':':
+						return Token.COLON;
+					case '?':
+						return Token.QUESTION;
+					case '.':
+						return Token.DOT;
+					case '|':
+						c = getChar(false);
+						if(c == '|') {
+							return Token.OR;
+						} else if(c == '=') {
+							return Token.ASSIGN_BITOR;
+						} else {
+							ungetChar(c);
+							return Token.BITOR;
+						}
+					case '&':
+						c = getChar(false);
+						if(c == '&') {
+							return Token.AND;
+						} else if(c == '=') {
+							return Token.ASSIGN_BITAND;
+						} else {
+							ungetChar(c);
+							return Token.BITAND;
+						}
+					case '^':
+						c = getChar(false);
+						if(c == '=') {
+							return Token.ASSIGN_BITXOR;
+						} else {
+							ungetChar(c);
+							return Token.BITXOR;
+						}
+					case '~':
+						return Token.BITNOT;
+					case '%':
+						c = getChar(false);
+						if(c == '=') {
+							return Token.ASSIGN_MOD;
+						} else {
+							ungetChar(c);
+							return Token.MOD;
+						}
+
+					case '=':
+						c = getChar(false);
+						if(c == '=') {
+							c = getChar(false);
+							if(c == '=') {
+								return Token.EQ_EXACT;
+							} else {
+								ungetChar(c);
+								return Token.EQ;
+							}
+						} else {
+							return Token.ASSIGN;
+						}
+					case '!':
+						c = getChar(false);
+						if(c == '=') {
+							c = getChar(false);
+							if(c == '=') {
+								return Token.NE_EXACT;
+							} else {
+								ungetChar(c);
+								return Token.NE;
+							}
+						} else {
+							ungetChar(c);
+							return Token.NOT;
+						}
+					case '<':
+						c = getChar(false);
+						if(c == '<') {
+							c = getChar(false);
+							if(c == '=') {
+								return Token.ASSIGN_LSH;
+							} else {
+								ungetChar(c);
+								return Token.LSH;
+							}
+						} else if(c == '=') {
+							return Token.LE;
+						} else {
+							ungetChar(c);
+							return Token.LT;
+						}
+					case '>':
+						c = getChar(false);
+						if(c == '>') {
+							c = getChar(false);
+							if(c == '>') {
+								c = getChar(false);
+								if(c == '=') {
+									return Token.ASSIGN_URSH;
+								} else {
+									ungetChar(c);
+									return Token.URSH;
+								}
+							} else if(c == '=') {
+								return Token.ASSIGN_RSH;
+							} else {
+								ungetChar(c);
+								return Token.RSH;
+							}
+						} else if(c == '=') {
+							return Token.GE;
+						} else {
+							ungetChar(c);
+							return Token.GT;
+						}
+					case '+':
+						c = getChar(false);
+						if(c == '=') {
+							return Token.ASSIGN_ADD;
+						} else if(c == '+') {
+							return Token.INC;
+						} else {
+							ungetChar(c);
+							return Token.ADD;
+						}
+					case '-':
+						c = getChar(false);
+						if(c == '=') {
+							return Token.ASSIGN_SUB;
+						} else if(c == '-') {
+							return Token.DEC;
+						} else {
+							ungetChar(c);
+							return Token.SUB;
+						}
+					case '*':
+						c = getChar(false);
+						if(c == '=') {
+							return Token.ASSIGN_MUL;
+						} else {
+							ungetChar(c);
+							return Token.MUL;
+						}
+					case '/':
+						c = getChar(false);
+						if(c == '=') {
+							return Token.ASSIGN_DIV;
+						} else {
+							ungetChar(c);
+							return Token.DIV;
+						}
+				}
 				//TODO: Test if Alpha (Identifier)
 
 
@@ -254,7 +496,7 @@ public class TokenStream {
 	/**
 	* Returns true if the character is a javascript whitespace character per ECMASCRIPT
 	*/
-    static boolean isJSSpace(int c)
+    private static boolean isJSSpace(int c)
     {
         if (c <= 127) {
             return c == 0x20 || c == 0x9 || c == 0xC || c == 0xB;
@@ -263,6 +505,20 @@ public class TokenStream {
                 || Character.getType((char)c) == Character.SPACE_SEPARATOR;
         }
     }
+
+	private static boolean isDecimalDigit(int c) {
+		if(c >= 0x30 && c <= 0x39) {
+			return true;
+		}
+		return false;
+	}
+
+	private static boolean isHexDigit(int c) {
+		if((c >= 0x30 && c <= 0x39) || (c >= 0x41 && c <= 0x46) || ( c >= 0x61 && c <= 0x66)) {
+			return true;
+		}
+		return false;
+	}
 
     private static boolean isJSFormatChar(int c)
     {
